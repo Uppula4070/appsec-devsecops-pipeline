@@ -79,6 +79,20 @@ def robots():
     return "User-agent: *\nDisallow: /\n", 200, {"Content-Type": "text/plain"}
 
 
+# --- DELIBERATELY VULNERABLE: demo branch only, never merge ---
+
+# Flaw 2: hardcoded credential (fake value, for the secrets scanners).
+PAYMENTS_API_KEY = "308c9b92b015ba3b1f1f5a11c7b9662d000cb1bc"
+
+
+@app.get("/notes/unsafe")
+def unsafe_search():
+    query = request.args.get("q", "")
+    # Flaw 1: user input concatenated straight into SQL (SQL injection).
+    sql = f"SELECT id, title, body FROM notes WHERE title LIKE '%{query}%'"
+    rows = get_db().execute(sql).fetchall()
+    return jsonify([dict(row) for row in rows])
+
 if __name__ == "__main__":
     # Waitress instead of Flask's dev server, which adds its own version banner.
     from waitress import serve
