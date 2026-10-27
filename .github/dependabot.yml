@@ -1,10 +1,16 @@
 version: 2
 updates:
+  # Cooldown waits a few days before adopting a new release, so a
+  # compromised or broken version is more likely to be caught first.
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7

@@ -41,7 +41,12 @@ def init_db():
 
 @app.after_request
 def security_headers(response):
-    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    # form-action and base-uri don't fall back to default-src, so set them explicitly.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'"
+    )
+    # Hide the framework and Python version from the Server header.
+    response.headers["Server"] = "notes-api"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -75,5 +80,8 @@ def robots():
 
 
 if __name__ == "__main__":
+    # Waitress instead of Flask's dev server, which adds its own version banner.
+    from waitress import serve
+
     init_db()
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "5000")))
+    serve(app, host="127.0.0.1", port=int(os.environ.get("PORT", "5000")), ident="notes-api")

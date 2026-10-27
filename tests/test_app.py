@@ -29,3 +29,5 @@ def test_security_headers(client):
     assert headers["X-Content-Type-Options"] == "nosniff"
     assert headers["X-Frame-Options"] == "DENY"
     assert "default-src 'none'" in headers["Content-Security-Policy"]
+    assert "form-action 'none'" in headers["Content-Security-Policy"]
+    assert headers["Server"] == "notes-api"

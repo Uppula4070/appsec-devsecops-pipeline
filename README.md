@@ -35,12 +35,25 @@ The `vulnerable-demo` branch adds three deliberate flaws, and its pull request s
 
 The `main` branch shows the fixes: parameterized queries, no secrets in code, current dependencies, and strict security headers.
 
+## What it found in its own first run
+
+The very first run on `main` failed 3 of 5 checks, all real issues, and each was fixed rather than suppressed:
+
+| Scanner | Finding | Fix |
+|---|---|---|
+| pip-audit | `flask 3.1.2` affected by PYSEC-2026-2151 (missing `Vary: Cookie`, cache leak) | Upgraded to `flask 3.1.3` |
+| Semgrep | 11 GitHub Actions referenced by mutable tags (`@v4`), a supply-chain risk | Pinned every action to a full commit SHA |
+| Semgrep | Dependabot had no cooldown, so it would adopt a brand-new (possibly compromised) release immediately | Added a 7-day cooldown |
+| ZAP | `Server` header leaked `Werkzeug/x Python/x` | Served the app with Waitress instead of the dev server; header is now `notes-api` |
+| ZAP | CSP missing directives that don't fall back to `default-src` | Added `form-action 'none'` and `base-uri 'none'` |
+
 ## Design choices
 
 - **Fail closed.** Every scanner runs with the option that makes it fail the job, rather than only reporting.
 - **Tuned, not silenced.** The one ZAP rule ignored (`.zap/rules.tsv`) is informational for a JSON API, and the reason is written next to it.
 - **Fixes are tested.** `tests/test_app.py` sends a classic `' OR '1'='1` payload so an injection bug can't quietly come back.
 - **Least privilege.** The workflow's default token is read-only; only the SAST job gets `security-events: write` to upload results.
+- **Pinned supply chain.** Third-party actions are pinned to commit SHAs, and Dependabot proposes updates after a cooldown.
 
 ## Run it locally
 
