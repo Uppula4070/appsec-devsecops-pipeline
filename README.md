@@ -25,7 +25,7 @@ Semgrep results are also uploaded as SARIF, so they show up in the repo's **Secu
 
 ## See it catch real bugs
 
-The `vulnerable-demo` branch adds three deliberate flaws, and its pull request shows the pipeline failing:
+[Pull request #9](https://github.com/Uppula4070/appsec-devsecops-pipeline/pull/9) (branch `vulnerable-demo-v2`) adds three deliberate flaws, and shows the pipeline failing and the merge blocked:
 
 | Flaw added | Caught by |
 |---|---|
