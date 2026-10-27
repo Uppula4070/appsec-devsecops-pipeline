@@ -1,0 +1,63 @@
+# AppSec DevSecOps Pipeline
+
+[![security-pipeline](https://github.com/Uppula4070/appsec-devsecops-pipeline/actions/workflows/security.yml/badge.svg)](https://github.com/Uppula4070/appsec-devsecops-pipeline/actions/workflows/security.yml)
+
+A GitHub Actions pipeline that puts **SAST, dependency scanning, secrets scanning and DAST** in front of every pull request, and **blocks the merge** when a scan finds something. The target is a small Flask notes API.
+
+> **Lab only.** Everything here runs on a demo app I wrote for this project. No employer code, data or findings.
+
+## How it works
+
+```
+ Pull request opened
+        │
+        ├── Unit tests ─────────────── pytest (includes an SQL-injection regression test)
+        ├── SAST ───────────────────── Semgrep: python, flask, owasp-top-ten, secrets rules
+        ├── Dependency scan (SCA) ──── pip-audit against the OSV / PyPI advisory databases
+        ├── Secrets scan ───────────── Gitleaks over the full git history
+        └── DAST ───────────────────── app started in CI, OWASP ZAP baseline scan against it
+                    │
+        any job fails ──► merge blocked (branch protection)
+        all jobs pass ──► merge allowed
+```
+
+Semgrep results are also uploaded as SARIF, so they show up in the repo's **Security → Code scanning** tab. Dependabot opens weekly PRs for outdated Python packages and GitHub Actions.
+
+## See it catch real bugs
+
+The `vulnerable-demo` branch adds three deliberate flaws, and its pull request shows the pipeline failing:
+
+| Flaw added | Caught by |
+|---|---|
+| SQL built with an f-string from user input (`/notes/unsafe?q=`) | Semgrep (SAST) |
+| Hardcoded API key in the source | Gitleaks and Semgrep secrets rules |
+| `requests==2.19.1`, which has known CVEs | pip-audit (SCA) |
+
+The `main` branch shows the fixes: parameterized queries, no secrets in code, current dependencies, and strict security headers.
+
+## Design choices
+
+- **Fail closed.** Every scanner runs with the option that makes it fail the job, rather than only reporting.
+- **Tuned, not silenced.** The one ZAP rule ignored (`.zap/rules.tsv`) is informational for a JSON API, and the reason is written next to it.
+- **Fixes are tested.** `tests/test_app.py` sends a classic `' OR '1'='1` payload so an injection bug can't quietly come back.
+- **Least privilege.** The workflow's default token is read-only; only the SAST job gets `security-events: write` to upload results.
+
+## Run it locally
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows  (macOS/Linux: source .venv/bin/activate)
+pip install -r requirements-dev.txt
+python -m pytest -q
+python -m app.app               # http://127.0.0.1:5000/notes?q=welcome
+```
+
+## Repo layout
+
+```
+app/app.py                     Flask notes API (the scan target)
+tests/test_app.py              Unit and security regression tests
+.github/workflows/security.yml The security pipeline
+.github/dependabot.yml         Automated dependency updates
+.zap/rules.tsv                 ZAP rule tuning, with reasons
+```
